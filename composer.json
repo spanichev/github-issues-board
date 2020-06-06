@@ -5,11 +5,11 @@
 		]
 	},
 	"require": {
-		"mustache/mustache": "^2.9",
-		"vierbergenlars/php-semver": "^3.0",
-		"knplabs/github-api": "^1.5",
-		"michelf/php-markdown": "^1.6",
-		"phpunit/phpunit": "5.0.*"
+		"phpunit/phpunit": "^8.5",
+		"symfony/http-client": "^5.1",
+		"knplabs/github-api": "^2.14",
+		"michelf/php-markdown": "^1.9",
+		"mustache/mustache": "^2.13"
 	},
-	"minimum-stability": "dev"
+	"minimum-stability": "stable"
 }
