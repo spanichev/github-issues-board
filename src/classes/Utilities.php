@@ -1,5 +1,5 @@
 <?php
-namespace KanbanBoard;
+namespace App;
 
 class Utilities
 {

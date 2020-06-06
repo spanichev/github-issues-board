@@ -1,17 +1,16 @@
 <?php
-require '../src/classes/KanbanBoard/Github.php';
-require '../src/classes/Utilities.php';
-require '../src/classes/KanbanBoard/Authentication.php';
+require __DIR__.'/../vendor/autoload.php';
 
-use KanbanBoard\Authentication;
-use KanbanBoard\GithubActual;
-use KanbanBoard\Utilities;
+use App\KanbanBoard\Application;
+use App\KanbanBoard\Authentication;
+use App\KanbanBoard\GithubClient;
+use App\Utilities;
 
 $repositories = explode('|', Utilities::env('GH_REPOSITORIES'));
-$authentication = new \KanbanBoard\Login();
+$authentication = new Authentication();
 $token = $authentication->login();
 $github = new GithubClient($token, Utilities::env('GH_ACCOUNT'));
-$board = new \KanbanBoard\Application($github, $repositories, array('waiting-for-feedback'));
+$board = new Application($github, $repositories, array('waiting-for-feedback'));
 $data = $board->board();
 $m = new Mustache_Engine(array(
 	'loader' => new Mustache_Loader_FilesystemLoader('../views'),
