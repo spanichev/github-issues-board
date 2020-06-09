@@ -16,8 +16,6 @@ $token = $authentication->login();
 $board = new Application(new GithubService($token));
 $data = $board->board();
 
-//var_dump($data);
-
 $m = new Mustache_Engine(array(
 	'loader' => new Mustache_Loader_FilesystemLoader(__DIR__.'/../src/views'),
 ));
