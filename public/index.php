@@ -4,11 +4,12 @@ require __DIR__.'/../vendor/autoload.php';
 use App\KanbanBoard\Application;
 use App\KanbanBoard\Authentication;
 use App\KanbanBoard\GithubClient;
+use App\Support\Env;
 use App\Utilities;
+use Dotenv\Dotenv;
 
-
-var_dump(Utilities::env('GH_REPOSITORIES'));
-die();
+// Loading .env file
+Dotenv::create(Env::getRepository(), __DIR__.'/../', ['.env'])->load();
 
 $repositories = explode('|', Utilities::env('GH_REPOSITORIES'));
 $authentication = new Authentication();

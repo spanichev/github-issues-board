@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use Dotenv\Dotenv;
 use Dotenv\Repository\Adapter\EnvConstAdapter;
 use Dotenv\Repository\Adapter\ServerConstAdapter;
 use Dotenv\Repository\RepositoryBuilder;
@@ -55,10 +54,6 @@ class Env
     {
         $value = static::getRepository()->get($key);
 
-        if ( !$value ) {
-            return  $default;
-        }
-
         switch (strtolower($value)) {
             case 'true':
             case '(true)':
@@ -74,5 +69,7 @@ class Env
         if (preg_match('/\A([\'"])(.*)\1\z/', $value, $matches)) {
             return $matches[2];
         }
+
+        return $value ?? $default;
     }
 }
