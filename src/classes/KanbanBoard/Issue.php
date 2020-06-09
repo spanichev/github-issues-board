@@ -2,9 +2,10 @@
 
 namespace App\KanbanBoard;
 
+use App\KanbanBoard\Interfaces\ArraybleInterface;
 use Michelf\Markdown;
 
-class Issue
+class Issue implements ArraybleInterface
 {
     const STATE_ALL = 'all';
     const STATE_OPEN = 'open';
@@ -275,7 +276,7 @@ class Issue
 
     /**
      * Converts the entity into mustache adapted array
-     * 
+     *
      * @return array
      */
     public function toArray(): array {
