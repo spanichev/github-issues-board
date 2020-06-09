@@ -9,9 +9,10 @@ interface GithubServiceInterface
     /**
      * Implementation for milestones method
      * @param string $repository
+     * @param bool $withIssues Indicates if we should include issues there
      * @return Collection
      */
-    public function milestones(string $repository): Collection;
+    public function milestones(string $repository, bool $withIssues = false): Collection;
 
     /**
      * Implementation for issues method
