@@ -2,6 +2,8 @@
 
 namespace App\KanbanBoard;
 
+use Michelf\Markdown;
+
 class Issue
 {
     const STATE_ALL = 'all';
@@ -14,9 +16,21 @@ class Issue
     private int $id;
 
     /**
+     * @var int $number Number of the issue
+     */
+    private int $number;
+
+    /**
      * @var string Title of the issue
      */
     private string $title;
+
+    /**
+     * @var string Body of the issue
+     */
+    private string $body;
+
+    private string $htmlUrl;
 
     /**
      * @var array Issue labels
@@ -39,9 +53,9 @@ class Issue
     private ?array $assignees;
 
     /**
-     * @var \DateTime Issue creation date
+     * @var \DateTime|null Issue close date
      */
-    private \DateTime $createdAt;
+    private ?\DateTime $closedAt;
 
     /**
      * Deny creating issues manually.
@@ -65,9 +79,25 @@ class Issue
      *
      * @param int $id
      */
-    protected function setId(int $id): void
+    public function setId(int $id): void
     {
         $this->id = $id;
+    }
+
+    /**
+     * @return int
+     */
+    public function getNumber(): int
+    {
+        return $this->number;
+    }
+
+    /**
+     * @param int $number
+     */
+    public function setNumber(int $number): void
+    {
+        $this->number = $number;
     }
 
     /**
@@ -85,10 +115,43 @@ class Issue
      *
      * @param string $title
      */
-    protected function setTitle(string $title): void
+    public function setTitle(string $title): void
     {
         $this->title = $title;
     }
+
+    /**
+     * @return string
+     */
+    public function getBody(): string
+    {
+        return $this->body;
+    }
+
+    /**
+     * @param string $body
+     */
+    public function setBody(string $body): void
+    {
+        $this->body = Markdown::defaultTransform($body);
+    }
+
+    /**
+     * @return string
+     */
+    public function getHtmlUrl(): string
+    {
+        return $this->htmlUrl;
+    }
+
+    /**
+     * @param string $htmlUrl
+     */
+    public function setHtmlUrl(string $htmlUrl): void
+    {
+        $this->htmlUrl = $htmlUrl;
+    }
+
 
     /**
      * Get labels of the issue
@@ -105,7 +168,7 @@ class Issue
      *
      * @param array $labels
      */
-    protected function setLabels(array $labels): void
+    public function setLabels(array $labels): void
     {
         $this->labels = $labels;
     }
@@ -134,7 +197,7 @@ class Issue
      *
      * @param string $state
      */
-    protected function setState(string $state): void
+    public function setState(string $state): void
     {
         $this->state = $state;
     }
@@ -142,11 +205,13 @@ class Issue
     /**
      * Get assignee of the issue
      *
-     * @return array|null
+     * @return string|null
      */
-    public function getAssignee(): ?array
+    public function getAssignee(): ?string
     {
-        return $this->assignee;
+        if ( !empty($this->assignee) ) return $this->assignee['avatar_url'].'?s=16';
+
+        return null;
     }
 
     /**
@@ -154,7 +219,7 @@ class Issue
      *
      * @param array|null $assignee
      */
-    protected function setAssignee(?array $assignee): void
+    public function setAssignee(?array $assignee): void
     {
         $this->assignee = $assignee;
     }
@@ -174,29 +239,29 @@ class Issue
      *
      * @param array|null $assignees
      */
-    protected function setAssignees(?array $assignees): void
+    public function setAssignees(?array $assignees): void
     {
         $this->assignees = $assignees;
     }
 
     /**
-     * Get creation date of the issue
+     * Get close date of the issue
      *
      * @return \DateTime
      */
-    public function getCreatedAt(): \DateTime
+    public function getClosedAt(): ?\DateTime
     {
-        return $this->createdAt;
+        return $this->closedAt;
     }
 
     /**
-     * Set creation date of the issue
+     * Set close date of the issue
      *
      * @param \DateTime $createdAt
      */
-    protected function setCreatedAt(\DateTime $createdAt): void
+    public function setClosedAt(?\DateTime $closedAt): void
     {
-        $this->createdAt = $createdAt;
+        $this->closedAt = $closedAt;
     }
 
     /**
@@ -209,6 +274,24 @@ class Issue
     }
 
     /**
+     * Converts the entity into mustache adapted array
+     * 
+     * @return array
+     */
+    public function toArray(): array {
+        return [
+            'title' => $this->getTitle(),
+            'id' => $this->getId(),
+            'number' => $this->getNumber(),
+            'body' => $this->getBody(),
+            'labels' => $this->getLabels(),
+            'paused' => [],
+            'assignee' => $this->getAssignee(),
+            'closed' => $this->getClosedAt() ? $this->getClosedAt()->format("Y-m-d H:i:s") :  null
+        ];
+    }
+
+    /**
      * Creates an instance from Github Response array
      *
      * @param array $githubResponseIssue
@@ -218,12 +301,15 @@ class Issue
     public static function createFromGithubResponse(array $githubResponseIssue): Issue {
         $issue = new Issue();
         $issue->setId($githubResponseIssue['id']);
+        $issue->setNumber($githubResponseIssue['number']);
         $issue->setTitle($githubResponseIssue['title']);
         $issue->setLabels($githubResponseIssue['labels']);
         $issue->setState($githubResponseIssue['state']);
         $issue->setAssignee($githubResponseIssue['assignee']);
         $issue->setAssignees($githubResponseIssue['assignees']);
-        $issue->setCreatedAt(new \DateTime($githubResponseIssue['created_at']));
+        $issue->setBody($githubResponseIssue['body']);
+        $closedAt = (!empty($githubResponseIssue['closed_at'])) ? new \DateTime($githubResponseIssue['closed_at']) : null;
+        $issue->setClosedAt($closedAt);
         return $issue;
     }
 }
