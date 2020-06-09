@@ -6,10 +6,15 @@ use App\KanbanBoard\Authentication;
 use App\KanbanBoard\GithubClient;
 use App\Utilities;
 
+
+var_dump(Utilities::env('GH_REPOSITORIES'));
+die();
+
 $repositories = explode('|', Utilities::env('GH_REPOSITORIES'));
 $authentication = new Authentication();
 $token = $authentication->login();
 $github = new GithubClient($token, Utilities::env('GH_ACCOUNT'));
+
 $board = new Application($github, $repositories, array('waiting-for-feedback'));
 $data = $board->board();
 $m = new Mustache_Engine(array(

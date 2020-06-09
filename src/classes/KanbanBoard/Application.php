@@ -1,17 +1,26 @@
 <?php
 namespace App\KanbanBoard;
 
+use App\Support\Env;
 use App\Utilities;
+use Dotenv\Dotenv;
 use Michelf\Markdown;
 
 class Application {
 
 	public function __construct($github, $repositories, $paused_labels = array())
 	{
-		$this->github = $github;
+	    $this->loadConfiguration();
+
+        $this->github = $github;
 		$this->repositories = $repositories;
 		$this->paused_labels = $paused_labels;
 	}
+
+	private function loadConfiguration(): void {
+        // Loading .env file
+        Dotenv::create(Env::getRepository(), __DIR__.'/../')->load();
+    }
 
 	public function board()
 	{

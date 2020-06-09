@@ -1,19 +1,23 @@
 <?php
 namespace App;
 
+use App\Exceptions\EnvVariableNotFoundException;
+use App\Support\Env;
+
 class Utilities
 {
 	private function __construct() {
 	}
 
 	public static function env($name, $default = NULL) {
-		$value = getenv($name);
-		if($default !== NULL) {
-			if(!empty($value))
-				return $value;
-			return $default;
-		}
-		return (empty($value) && $default === NULL) ? die('Environment variable ' . $name . ' not found or has no value') : $value;
+
+	    $value = Env::get($name, $default);
+
+		if ( empty($value) && $default === NULL ) {
+            throw new EnvVariableNotFoundException("Environment variable {$name} not found or has no value");
+        }
+
+		return $value;
 	}
 
 	public static function hasValue($array, $key) {
