@@ -6,6 +6,7 @@ use App\KanbanBoard\Interfaces\GithubServiceInterface;
 use App\Utilities;
 use Github\Client;
 use Github\Api\Issue\Milestones;
+use Tightenco\Collect\Support\Collection;
 
 class GithubService implements GithubServiceInterface
 {
@@ -41,21 +42,33 @@ class GithubService implements GithubServiceInterface
      * Gets milestones for account
      *
      * @param string $repository Name of github repository
-     * @return array
+     * @param bool $withIssues Should we fetch issues for the milestone
+     * @return Collection<Milestone>
      */
-    public function milestones(string $repository): array {
-        return $this->milestoneApi->all($this->account, $repository);
+    public function milestones(string $repository, bool $withIssues = false): Collection {
+        $milestones = $this->milestoneApi->all($this->account, $repository);
+
+        $processedMilestones = new Collection();
+        foreach ( $milestones as $milestone ) {
+            $processedMilestone = Milestone::createFromGithubResponse($milestone, $repository);
+            if ( $withIssues === true ) {
+                $processedMilestone->setIssues($this->issues($repository, $processedMilestone->getNumber()));
+            }
+            $processedMilestones->add($processedMilestone);
+        }
+        return $processedMilestones;
     }
 
     /**
      * Gets issues for user account and repository
      *
      * @param string $repository Name of the github repository
-     * @param int|null $milestoneId MilestoneId, if we need to filter issues by milestones
+     * @param int|null $milestoneId Milestone number, if we need to filter issues by milestones
+     * @param bool $ignorePullRequests Should we skip issues from pull-requests
      * @param string $state If we need to filter issues by state.
-     * @return array<\App\KanbanBoard\Issue> Array if Issue objects
+     * @return Collection<\App\KanbanBoard\Issue> Array if Issue objects
      */
-    public function issues(string $repository, int $milestoneId = null, string $state = Issue::STATE_ALL): array {
+    public function issues(string $repository, int $milestoneId = null, bool $ignorePullRequests = true, string $state = Issue::STATE_ALL): Collection {
         $issueParameters = ['state' => $state];
         if ( !empty($milestoneId) ) {
             $issueParameters['milestone'] = $milestoneId;
@@ -63,35 +76,14 @@ class GithubService implements GithubServiceInterface
 
         $issues = $this->client->api('issue')->all($this->account, $repository, $issueParameters);
 
-        $processedIssues = [];
+        $processedIssues = new Collection();
         foreach ( $issues as $issue ) {
+            if ( $ignorePullRequests && !empty($issue['pull_request']) ) continue;
+
             $processedIssue = Issue::createFromGithubResponse($issue);
-            $processedIssues[] = $processedIssue;
+            $processedIssues->add($processedIssue);
         }
 
         return $processedIssues;
     }
-
-    /**
-     * Gets issues with open state
-     *
-     * @param string $repository Name of the github repository
-     * @param int|null $milestoneId MilestoneId, if we need to filter issues by milestones
-     * @return array<\App\KanbanBoard\Issue> Array if Issue objects
-     */
-    public function openIssues(string $repository, int $milestoneId = null): array {
-        return $this->issues($repository, $milestoneId, Issue::STATE_OPEN);
-    }
-
-    /**
-     * Gets issues with closed state
-     *
-     * @param string $repository Name of the github repository
-     * @param int|null $milestoneId MilestoneId, if we need to filter issues by milestones
-     * @return array<\App\KanbanBoard\Issue> Array if Issue objects
-     */
-    public function closedIssues(string $repository, int $milestoneId = null): array {
-        return $this->issues($repository, $milestoneId, Issue::STATE_CLOSED);
-    }
-
 }
