@@ -1,32 +1,53 @@
 <?php
 namespace App\KanbanBoard;
 
-use App\Support\Env;
+use App\KanbanBoard\Interfaces\GithubServiceInterface;
 use App\Utilities;
-use Dotenv\Dotenv;
 use Michelf\Markdown;
+use Tightenco\Collect\Support\Collection;
 
 class Application {
 
-	public function __construct($github, $repositories, $paused_labels = array())
+    protected GithubServiceInterface $githubService;
+    protected array $repositories;
+    protected array $pausedLabels;
+
+	public function __construct(GithubServiceInterface $githubService)
 	{
-        $this->github = $github;
-		$this->repositories = $repositories;
-		$this->paused_labels = $paused_labels;
+        $this->githubService = $githubService;
+		$this->repositories = explode('|', Utilities::env('GH_REPOSITORIES'));
+		$this->pausedLabels = explode('|', Utilities::env('GH_PAUSED_LABELS'));;
 	}
+
+    public function getMilestones(): Collection {
+        $milestones = new Collection();
+        foreach ($this->repositories as $repository) {
+            $milestones = $milestones->union($this->githubService->milestones($repository, true));
+        }
+        $milestones->sortBy('name');
+        return $milestones;
+    }
 
 	public function board()
 	{
-		$ms = array();
-		foreach ($this->repositories as $repository)
-		{
-			foreach ($this->github->milestones($repository) as $data)
-			{
-				$ms[$data['title']] = $data;
-				$ms[$data['title']]['repository'] = $repository;
-			}
-		}
-		ksort($ms);
+	    $result = [];
+	    $milestones = $this->getMilestones();
+
+        foreach ( $milestones as $milestone ) {
+            $result[] = [
+                'milestone' => $milestone->getName(),
+                'url' => $milestone->getHtmlUrl(),
+                'progress' => $milestone->getProgress(),
+                'queued' => Utilities::mapToView($milestone->queuedIssues()),
+                'active' => Utilities::mapToView($milestone->activeIssues()),
+                'completed' => Utilities::mapToView($milestone->closedIssues())
+            ];
+        }
+
+        var_dump($result);
+
+        return $result;
+        /*
 		foreach ($ms as $name => $data)
 		{
 			$issues = $this->issues($data['repository'], $data['number']);
@@ -44,6 +65,7 @@ class Application {
 			}
 		}
 		return $milestones;
+        */
 	}
 
 	private function issues($repository, $milestone_id)
@@ -82,18 +104,9 @@ class Application {
 			return 'queued';
 	}
 
-	private static function labels_match($issue, $needles)
-	{
-		if(Utilities::hasValue($issue, 'labels')) {
-			foreach ($issue['labels'] as $label) {
-				if (in_array($label['name'], $needles)) {
-					return array($label['name']);
-				}
-			}
-		}
-		return array();
-
-	}
+    public function getPausedLabels(): array {
+	    return $this->pausedLabels;
+    }
 
 	private static function _percent($complete, $remaining)
 	{
