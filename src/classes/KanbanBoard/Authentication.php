@@ -1,78 +1,117 @@
-<?php
+<?php declare(strict_types=1);
+
 namespace App\KanbanBoard;
+
+use App\KanbanBoard\Interfaces\AuthenticationInterface;
 use App\Utilities;
+use GuzzleHttp\Exception\ClientException;
 
-class Authentication {
+class Authentication implements AuthenticationInterface {
 
-	private $client_id = NULL;
-	private $client_secret = NULL;
+    /**
+     * GitHub Api Client Id
+     * @var string $clientId
+     */
+    private string $clientId;
 
-	public function __construct()
-	{
-		$this->client_id = Utilities::env('GH_CLIENT_ID');
-		$this->client_secret = Utilities::env('GH_CLIENT_SECRET');
+    /**
+     * GitHub Api Client Secret
+     * @var string $clientSecret
+     */
+	private string $clientSecret;
+
+    /**
+     * Authentication constructor.
+     * @throws \App\Exceptions\EnvVariableNotFoundException
+     */
+	public function __construct() {
+	    session_start();
+		$this->clientId = Utilities::env('GH_CLIENT_ID');
+		$this->clientSecret = Utilities::env('GH_CLIENT_SECRET');
 	}
 
-	public function logout()
-	{
-		unset($_SESSION['gh-token']);
+    /**
+     * Destroys the current session
+     * @return void
+     */
+	public function logout(): void {
+	    session_destroy();
 	}
 
-	public function login()
-	{
-		session_start();
-		$token = NULL;
-		if(array_key_exists('gh-token', $_SESSION)) {
-			$token = $_SESSION['gh-token'];
-		}
-		else if(Utilities::hasValue($_GET, 'code')
+    /**
+     * oAuth2 Authentication implementation
+     *
+     * @see https://developer.github.com/v3/#authentication
+     * @throws \GuzzleHttp\Exception\ClientException
+     * @return string GitHub's access_token
+     */
+	public function login(): string {
+		if ( Utilities::hasValue($_SESSION, 'gh-token') ) {
+		    return $_SESSION['gh-token'];
+        }
+
+		if(Utilities::hasValue($_GET, 'code')
 			&& Utilities::hasValue($_GET, 'state')
+               && $_SESSION['state'] == $_GET['state']
 			&& $_SESSION['redirected'])
 		{
 			$_SESSION['redirected'] = false;
-			$token = $this->_returnsFromGithub($_GET['code']);
+			try {
+                $_SESSION['gh-token'] = $token = $this->_returnsFromGithub($_GET['code']);
+                unset($_SESSION['state'], $_SESSION['redirected']);
+                header("Location:/");
+                exit();
+            } catch (ClientException $exception) {
+			    session_destroy();
+			    throw $exception;
+            }
 		}
 		else
 		{
 			$_SESSION['redirected'] = true;
 			$this->_redirectToGithub();
 		}
-		$this->logout();
-		$_SESSION['gh-token'] = $token;
-		return $token;
 	}
 
-	private function _redirectToGithub()
-	{
-		$url = 'Location: https://github.com/login/oauth/authorize';
-		$url .= '?client_id=' . $this->client_id;
-		$url .= '&scope=repo';
-		$url .= '&state=LKHYgbn776tgubkjhk';
-		header($url);
+    /**
+     * Authorizes client for GitHub authentication
+     *
+     * @see https://developer.github.com/v3/#authentication
+     * @return void
+     */
+	private function _redirectToGithub(): void {
+        $_SESSION['state'] = $state = Utilities::randomString();
+
+        $query = http_build_query([
+            'client_id' => $this->clientId,
+            'scope' => 'repo',
+            'state' => $state,
+        ]);
+
+		header('Location: https://github.com/login/oauth/authorize?' . $query);
 		exit();
 	}
 
-	private function _returnsFromGithub($code)
-	{
-		$url = 'https://github.com/login/oauth/access_token';
-		$data = array(
-			'code' => $code,
-			'state' => 'LKHYgbn776tgubkjhk',
-			'client_id' => $this->client_id,
-			'client_secret' => $this->client_secret);
-		$options = array(
-			'http' => array(
-				'method' => 'POST',
-				'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-				'content' => http_build_query($data),
-			),
-		);
-		$context = stream_context_create($options);
-		$result = file_get_contents($url, false, $context);
-		if ($result === FALSE)
-			die('Error');
-		$result = explode('=', explode('&', $result)[0]);
-		array_shift($result);
-		return array_shift($result);
+    /**
+     * Requests access_token from GitHub
+     *
+     * @see https://developer.github.com/v3/#authentication
+     * @param string $code Authorization code from GitHub
+     * @return string access_token
+     */
+	private function _returnsFromGithub(string $code): string {
+        $response = (new \GuzzleHttp\Client)->post('https://github.com/login/oauth/access_token', [
+            'form_params' => [
+                'code' => $code,
+                'state' => $_SESSION['state'],
+                'client_id' => $this->clientId,
+                'client_secret' => $this->clientSecret
+            ],
+        ]);
+
+        parse_str((string) $response->getBody(), $result);
+
+        return $result['access_token'];
 	}
+
 }
