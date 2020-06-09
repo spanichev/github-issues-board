@@ -8,15 +8,51 @@ class Issue
     const STATE_OPEN = 'open';
     const STATE_CLOSED = 'closed';
 
+    /**
+     * @var int id of the issue
+     */
     private int $id;
+
+    /**
+     * @var string Title of the issue
+     */
     private string $title;
+
+    /**
+     * @var array Issue labels
+     */
     private array $labels;
+
+    /**
+     * @var string State of the issue. "open"|"closed"
+     */
     private string $state;
+
+    /**
+     * @var array|null Issue's assignee
+     */
     private ?array $assignee;
+
+    /**
+     * @var array|null Issue's assignees list
+     */
     private ?array $assignees;
+
+    /**
+     * @var \DateTime Issue creation date
+     */
     private \DateTime $createdAt;
 
     /**
+     * Deny creating issues manually.
+     */
+    private function __construct()
+    {
+    }
+
+    /**
+     * Gets the id of the issue
+     *
      * @return int
      */
     public function getId(): int
@@ -25,14 +61,18 @@ class Issue
     }
 
     /**
+     * Sets the id of the issue
+     *
      * @param int $id
      */
-    public function setId(int $id): void
+    protected function setId(int $id): void
     {
         $this->id = $id;
     }
 
     /**
+     * Get title of the issue
+     *
      * @return string
      */
     public function getTitle(): string
@@ -41,14 +81,18 @@ class Issue
     }
 
     /**
+     * Set title of the issue
+     *
      * @param string $title
      */
-    public function setTitle(string $title): void
+    protected function setTitle(string $title): void
     {
         $this->title = $title;
     }
 
     /**
+     * Get labels of the issue
+     *
      * @return array
      */
     public function getLabels(): array
@@ -57,14 +101,27 @@ class Issue
     }
 
     /**
+     * Set labels of the issue
+     *
      * @param array $labels
      */
-    public function setLabels(array $labels): void
+    protected function setLabels(array $labels): void
     {
         $this->labels = $labels;
     }
 
     /**
+     * Checks if the issue has labels
+     *
+     * @return bool
+     */
+    public function hasLabels(): bool {
+        return !empty($this->labels);
+    }
+
+    /**
+     * Get state of the issue
+     *
      * @return string
      */
     public function getState(): string
@@ -73,14 +130,18 @@ class Issue
     }
 
     /**
+     * Set state of the issue
+     *
      * @param string $state
      */
-    public function setState(string $state): void
+    protected function setState(string $state): void
     {
         $this->state = $state;
     }
 
     /**
+     * Get assignee of the issue
+     *
      * @return array|null
      */
     public function getAssignee(): ?array
@@ -89,15 +150,19 @@ class Issue
     }
 
     /**
-     * @param array $assignee
+     * Set assignee of the issue
+     *
+     * @param array|null $assignee
      */
-    public function setAssignee(?array $assignee): void
+    protected function setAssignee(?array $assignee): void
     {
         $this->assignee = $assignee;
     }
 
     /**
-     * @return array
+     * Get assignees of the issue
+     *
+     * @return array|null
      */
     public function getAssignees(): ?array
     {
@@ -105,14 +170,18 @@ class Issue
     }
 
     /**
-     * @param array $assignees
+     * Set assignees of the issue
+     *
+     * @param array|null $assignees
      */
-    public function setAssignees(?array $assignees): void
+    protected function setAssignees(?array $assignees): void
     {
         $this->assignees = $assignees;
     }
 
     /**
+     * Get creation date of the issue
+     *
      * @return \DateTime
      */
     public function getCreatedAt(): \DateTime
@@ -121,17 +190,31 @@ class Issue
     }
 
     /**
+     * Set creation date of the issue
+     *
      * @param \DateTime $createdAt
      */
-    public function setCreatedAt(\DateTime $createdAt): void
+    protected function setCreatedAt(\DateTime $createdAt): void
     {
         $this->createdAt = $createdAt;
     }
 
+    /**
+     * Checks if the issue is assigned to somebody
+     *
+     * @return bool
+     */
     public function isAssigned(): bool {
         return (!empty($this->assignee) || !empty($this->assignees));
     }
 
+    /**
+     * Creates an instance from Github Response array
+     *
+     * @param array $githubResponseIssue
+     * @return Issue
+     * @throws \Exception
+     */
     public static function createFromGithubResponse(array $githubResponseIssue): Issue {
         $issue = new Issue();
         $issue->setId($githubResponseIssue['id']);
