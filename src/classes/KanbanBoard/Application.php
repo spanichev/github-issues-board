@@ -28,12 +28,21 @@ class Application {
      * @param GithubServiceInterface $githubService
      * @throws \App\Exceptions\EnvVariableNotFoundException
      */
-	public function __construct(GithubServiceInterface $githubService)
+	public function __construct(GithubServiceInterface $githubService, array $pausedLabels = [])
 	{
         $this->githubService = $githubService;
 		$this->repositories = explode('|', Utilities::env('GH_REPOSITORIES'));
-		$this->pausedLabels = explode('|', Utilities::env('GH_PAUSED_LABELS'));;
+		$this->pausedLabels = $pausedLabels;
 	}
+
+    /**
+     * Add pause label
+     *
+     * @param string $label
+     */
+	public function addPausedLabel(string $label): void {
+	    $this->pausedLabels[] = $label;
+    }
 
     /**
      * Gets milestones for given repositories with issues. Sorts milestones by name.

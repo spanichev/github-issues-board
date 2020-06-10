@@ -14,6 +14,7 @@ $authentication = new Authentication();
 $token = $authentication->login();
 
 $board = new Application(new GithubService($token));
+$board->addPausedLabel('paused-label');
 $data = $board->board();
 
 $m = new Mustache_Engine(array(
